@@ -135,8 +135,7 @@ export default function AnalyticsPage() {
         <div style={{ height:'200px' }}>
           <Bar data={{ labels:days28.map((d,i)=>i%4===0?formatDate(d):''), datasets:[
             {label:'Cal:Protein Ratio',data:cprHistory,backgroundColor:cprHistory.map(r=>r===null?'transparent':r<=10?'rgba(34,197,94,.6)':'rgba(249,115,22,.6)'),borderColor:cprHistory.map(r=>r===null?'transparent':r<=10?'#22c55e':'#f97316'),borderWidth:1},
-            {label:'Target (10:1)',data:Array(28).fill(10),type:'line' as any,borderColor:'rgba(59,130,246,.7)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false},
-          ]}} options={{...chartOpts,scales:{...chartOpts.scales,y:{...chartOpts.scales.y,ticks:{...chartOpts.scales.y.ticks,callback:(v:any)=>v+':1'}}}}} />
+          ] as any}} options={{...chartOpts,scales:{...chartOpts.scales,y:{...chartOpts.scales.y,ticks:{...chartOpts.scales.y.ticks,callback:(v:any)=>v+':1'}}}}} />
         </div>
       </Panel>
     </AppLayout>
