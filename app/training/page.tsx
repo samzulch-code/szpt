@@ -1,14 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { Panel, PanelTitle, PanelSub, PageHeader, StatGrid, StatCard, Btn, Input, Select, Toast } from '@/components/ui'
+import { Panel, PanelTitle, PanelSub, PageHeader, StatGrid, StatCard, Btn, Input, Toast } from '@/components/ui'
 import { createClient } from '@/lib/supabase'
 
 interface HevyWorkout { name: string; start_time: number; duration: number; exercises: { sets: { weight_kg: number; reps: number }[] }[] }
 
 export default function TrainingPage() {
   const [apiKey, setApiKey] = useState('')
-  const [method, setMethod] = useState('direct')
   const [connected, setConnected] = useState(false)
   const [workouts, setWorkouts] = useState<HevyWorkout[]>([])
   const [status, setStatus] = useState('')
@@ -22,28 +21,24 @@ export default function TrainingPage() {
       if (!data.user) return
       setUserId(data.user.id)
       const { data: p } = await supabase.from('profiles').select('hevy_api_key').eq('id', data.user.id).single()
-      if (p?.hevy_api_key) { setApiKey(p.hevy_api_key); fetchWorkouts(p.hevy_api_key, 'direct') }
+      if (p?.hevy_api_key) { setApiKey(p.hevy_api_key); fetchWorkouts(p.hevy_api_key) }
     })
   }, [])
 
   async function connect() {
     if (!apiKey) return
     await supabase.from('profiles').update({ hevy_api_key: apiKey }).eq('id', userId)
-    fetchWorkouts(apiKey, method)
+    fetchWorkouts(apiKey)
   }
 
-  async function fetchWorkouts(key: string, m: string) {
+  async function fetchWorkouts(key: string) {
     setStatus('Connecting to Hevy...')
-    const base = 'https://api.hevyapp.com/v1/workouts?page=1&pageSize=20'
-    let url = base, opts: RequestInit = { headers: { 'api-key': key, 'Accept': 'application/json' } }
-    if (m === 'proxy1') { url = 'https://corsproxy.io/?' + encodeURIComponent(base); opts = { headers: { 'api-key': key, 'Accept': 'application/json', 'x-requested-with': 'XMLHttpRequest' } } }
-    if (m === 'proxy2') { url = 'https://api.allorigins.win/get?url=' + encodeURIComponent(base); opts = {} }
     try {
-      const r = await fetch(url, opts)
-      if (r.status === 401 || r.status === 403) throw new Error('Invalid API key — check Hevy Settings → Developer API')
-      if (!r.ok) throw new Error(`Error ${r.status} — try a proxy method`)
+      const r = await fetch(`/api/hevy?apiKey=${encodeURIComponent(key)}&page=1&pageSize=20`)
+      if (!r.ok) throw new Error(`Error ${r.status}`)
       const j = await r.json()
-      const wkts = m === 'proxy2' ? JSON.parse(j.contents).workouts || [] : j.workouts || []
+      if (j.error) throw new Error(j.error)
+      const wkts = j.workouts || []
       setWorkouts(wkts); setConnected(true)
       setStatus(wkts.length + ' workouts loaded')
     } catch (err: any) {
@@ -58,13 +53,11 @@ export default function TrainingPage() {
   return (
     <AppLayout>
       <PageHeader title="HEVY" accent="TRAINING" sub="Synced from your Hevy account" />
-
       {!connected ? (
         <div style={{ maxWidth:'520px',margin:'0 auto' }}>
           <Panel>
             <PanelTitle>Connect Hevy</PanelTitle>
             <PanelSub>Sync your training data</PanelSub>
-
             <div style={{ background:'var(--s2)',border:'1px solid var(--b2)',padding:'16px',marginBottom:'16px' }}>
               <div style={{ fontSize:'8px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--or)',marginBottom:'8px' }}>Get your API key</div>
               <div style={{ fontSize:'10px',color:'var(--mu)',lineHeight:1.8 }}>
@@ -72,17 +65,7 @@ export default function TrainingPage() {
                 <span style={{ color:'var(--am)' }}>⚠ Requires Hevy Pro subscription</span>
               </div>
             </div>
-
-            <div style={{ background:'var(--s2)',border:'1px solid var(--b2)',padding:'16px',marginBottom:'16px' }}>
-              <div style={{ fontSize:'8px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--or)',marginBottom:'8px' }}>If you get a CORS error</div>
-              <div style={{ fontSize:'10px',color:'var(--mu)',lineHeight:1.8 }}>
-                Run in Terminal: <code style={{ background:'var(--s3)',padding:'2px 6px',color:'var(--or2)',fontSize:'9px' }}>cd ~/Downloads && python3 -m http.server 8080</code><br />
-                Then open <a href="http://localhost:8080" target="_blank" style={{ color:'var(--bl)' }}>localhost:8080</a> instead of opening the file directly.
-              </div>
-            </div>
-
             <Input label="API Key" value={apiKey} onChange={setApiKey} placeholder="e1c5f07d-a86a-41e9-af02-..." />
-            <Select label="Connection Method" value={method} onChange={setMethod} options={[{value:'direct',label:'Direct — use when on localhost'},{value:'proxy1',label:'corsproxy.io — try if Direct fails'},{value:'proxy2',label:'allorigins.win — backup proxy'}]} />
             {status && <div style={{ marginBottom:'12px',fontSize:'10px',color:status.startsWith('⚠')?'#fca5a5':'var(--mu)' }}>{status}</div>}
             <Btn variant="primary" onClick={connect} fullWidth>Connect Hevy →</Btn>
           </Panel>
@@ -95,18 +78,16 @@ export default function TrainingPage() {
               <div style={{ fontSize:'11px',color:'var(--mu)',marginTop:'3px' }}>{status}</div>
             </div>
             <div style={{ display:'flex',gap:'10px' }}>
-              <Btn variant="outline" onClick={()=>fetchWorkouts(apiKey,method)}>↻ Refresh</Btn>
+              <Btn variant="outline" onClick={()=>fetchWorkouts(apiKey)}>↻ Refresh</Btn>
               <Btn variant="danger" onClick={()=>{setConnected(false);setWorkouts([])}}>Disconnect</Btn>
             </div>
           </div>
-
           <StatGrid cols={4}>
             <StatCard label="Workouts Loaded" value={workouts.length} />
             <StatCard label="Total Volume" value={totalVol > 0 ? (totalVol/1000).toFixed(1) : '—'} unit="t" />
             <StatCard label="Avg Duration" value={workouts.length ? Math.round(totalDur/workouts.length/60) : '—'} unit="min" />
             <StatCard label="Last Session" value={workouts[0] ? new Date(workouts[0].start_time*1000).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—'} />
           </StatGrid>
-
           <Panel>
             <PanelTitle>Recent Workouts</PanelTitle>
             <PanelSub>From Hevy</PanelSub>
