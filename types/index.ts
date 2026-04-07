@@ -31,6 +31,7 @@ export interface Plan {
   start_weight: number | null
   goal_weight: number | null
   maintenance_cals: number | null
+  cpr_target: number | null
   notes: string | null
   is_active: boolean
 }

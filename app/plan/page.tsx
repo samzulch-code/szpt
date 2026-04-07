@@ -176,6 +176,7 @@ export default function PlanPage() {
           <Input label="Start Weight (kg)" value={plan.start_weight?.toString() || ''} onChange={v => setPlan(p => ({ ...p, start_weight: parseFloat(v)||null }))} type="number" placeholder="83.0" />
           <Input label="Goal Weight (kg)" value={plan.goal_weight?.toString() || ''} onChange={v => setPlan(p => ({ ...p, goal_weight: parseFloat(v)||null }))} type="number" placeholder="75.0" />
           <Input label="Maintenance Calories" value={plan.maintenance_cals?.toString() || ''} onChange={v => setPlan(p => ({ ...p, maintenance_cals: parseInt(v)||null }))} type="number" placeholder="2400" />
+          <Input label="Cal:Protein Target (ratio)" value={plan.cpr_target?.toString() || ''} onChange={v => setPlan(p => ({ ...p, cpr_target: parseFloat(v)||null }))} type="number" placeholder="10" />
         </div>
         <Textarea label="Plan Notes" value={plan.notes || ''} onChange={v => setPlan(p => ({ ...p, notes: v }))} placeholder="Training split, coach notes..." />
         <div style={{ marginTop: '16px' }}><Btn variant="primary" onClick={savePlan} disabled={saving}>{saving ? 'Saving...' : 'Save Plan'}</Btn></div>
