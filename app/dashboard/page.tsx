@@ -18,11 +18,14 @@ interface DashProps {
 
 // ── Journey unlock config ──────────────────────────────
 const UNLOCKS = [
-  { id: 'cal',      label: 'Avg Calories',     day: 1  },
-  { id: 'prot',     label: 'Avg Protein',       day: 3  },
-  { id: 'cpr',      label: 'Cal:Protein Ratio', day: 7  },
-  { id: 'creatine', label: 'Creatine Streak',   day: 11 },
-  { id: 'trend',    label: 'Weight Trend',      day: 14 },
+  { id: 'cal',      label: 'Avg Calories',        day: 1  },
+  { id: 'prot',     label: 'Avg Protein',          day: 3  },
+  { id: 'cpr',      label: 'Cal:Protein Ratio',    day: 7  },
+  { id: 'creatine', label: 'Creatine Streak',      day: 11 },
+  { id: 'trend',    label: 'Weight Trend',         day: 14 },
+  { id: 'rate',     label: 'Weekly Rate of Loss',  day: 28 },
+  { id: 'truemaint',label: 'True Maintenance',     day: 35 },
+  { id: 'deficit',  label: 'Deficit Optimizer',    day: 42 },
 ]
 
 function calcJourneyStreak(logs: DailyLog[]): number {
@@ -202,7 +205,7 @@ function DefaultView({ logs, plan, chartOpts }: DashProps) {
           </div>
           <div style={{ display:'flex',justifyContent:'space-between',marginTop:'4px' }}>
             <span style={{ fontSize:'7px',color:'var(--mu2)' }}>0</span>
-            <span style={{ fontSize:'7px',color:'var(--or)' }}>{c.cprTarget} target</span>
+            <span style={{ fontSize:'7px',color:'var(--or)' }}>{cprTarget} target</span>
             <span style={{ fontSize:'7px',color:'var(--mu2)' }}>20</span>
           </div>
           <div style={{ marginTop:'10px',fontSize:'9px',color:c.cprGood?'#4ade80':'#fca5a5',lineHeight:1.6 }}>
@@ -242,6 +245,96 @@ function LockedCard({ label, unlockDay, currentStreak }: { label:string; unlockD
         {unlockDay-currentStreak}d to unlock
       </div>
     </div>
+  )
+}
+
+function DeficitOptimizer({ c, plan }: { c: ReturnType<typeof useCalcs>; plan: Plan | null }) {
+  const baseRate = c.ratePerDay * 7 // kg/week
+  const baseCals = c.avgCal ?? (plan?.cal_target ?? 1800)
+  const baseSteps = c.avgSteps ?? (plan?.steps_target ?? 5000)
+
+  const [calAdj, setCalAdj] = useState(0)     // cal reduction from baseline
+  const [stepsAdj, setStepsAdj] = useState(0) // extra steps from baseline
+
+  // 110 kcal drop = 100g/week more loss
+  // 1000 extra steps = 100g/week more loss
+  const extraLossFromCals = (calAdj / 110) * 0.1   // kg/week
+  const extraLossFromSteps = (stepsAdj / 1000) * 0.1 // kg/week
+  const newRate = Math.max(0, baseRate + extraLossFromCals + extraLossFromSteps)
+  const newCals = Math.round(baseCals - calAdj)
+  const newSteps = Math.round(baseSteps + stepsAdj)
+  const daysToGoalNew = (newRate > 0 && c.latestW && c.goalW) ? Math.ceil((c.latestW - c.goalW) / (newRate / 7)) : null
+  const currentDaysToGoal = c.ratePerDay > 0 && c.latestW && c.goalW ? Math.ceil((c.latestW - c.goalW) / c.ratePerDay) : null
+  const daysSaved = currentDaysToGoal && daysToGoalNew ? currentDaysToGoal - daysToGoalNew : null
+
+  return (
+    <Panel style={{ marginBottom:'20px' }}>
+      <PanelTitle>Deficit Optimizer</PanelTitle>
+      <PanelSub>Adjust calories and steps to see the impact on your rate of loss</PanelSub>
+
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginTop:'16px' }}>
+        {/* Calorie slider */}
+        <div>
+          <div style={{ display:'flex',justifyContent:'space-between',marginBottom:'8px' }}>
+            <div style={{ fontSize:'8px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Reduce Calories By</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--or)' }}>{calAdj} kcal</div>
+          </div>
+          <input type="range" min={0} max={500} step={10} value={calAdj} onChange={e=>setCalAdj(Number(e.target.value))}
+            style={{ width:'100%',accentColor:'var(--or)',cursor:'pointer' }} />
+          <div style={{ display:'flex',justifyContent:'space-between',marginTop:'4px' }}>
+            <span style={{ fontSize:'7px',color:'var(--mu2)' }}>0 kcal</span>
+            <span style={{ fontSize:'7px',color:'var(--mu2)' }}>500 kcal</span>
+          </div>
+          <div style={{ marginTop:'8px',padding:'8px',background:'var(--s2)',border:'1px solid var(--b1)' }}>
+            <div style={{ fontSize:'8px',color:'var(--mu)',marginBottom:'2px' }}>New daily target</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--tx)' }}>{newCals.toLocaleString()} kcal</div>
+          </div>
+        </div>
+
+        {/* Steps slider */}
+        <div>
+          <div style={{ display:'flex',justifyContent:'space-between',marginBottom:'8px' }}>
+            <div style={{ fontSize:'8px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Add Steps</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',color:'#93c5fd' }}>+{stepsAdj.toLocaleString()}</div>
+          </div>
+          <input type="range" min={0} max={10000} step={500} value={stepsAdj} onChange={e=>setStepsAdj(Number(e.target.value))}
+            style={{ width:'100%',accentColor:'#93c5fd',cursor:'pointer' }} />
+          <div style={{ display:'flex',justifyContent:'space-between',marginTop:'4px' }}>
+            <span style={{ fontSize:'7px',color:'var(--mu2)' }}>+0</span>
+            <span style={{ fontSize:'7px',color:'var(--mu2)' }}>+10,000</span>
+          </div>
+          <div style={{ marginTop:'8px',padding:'8px',background:'var(--s2)',border:'1px solid var(--b1)' }}>
+            <div style={{ fontSize:'8px',color:'var(--mu)',marginBottom:'2px' }}>New daily steps</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--tx)' }}>{newSteps.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Outcome summary */}
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'1px',background:'var(--b1)',marginTop:'16px' }}>
+        <div style={{ background:'var(--s2)',padding:'14px' }}>
+          <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Current Rate</div>
+          <div style={{ fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--mu)',lineHeight:1 }}>{baseRate.toFixed(2)}kg/wk</div>
+        </div>
+        <div style={{ background:'var(--s2)',padding:'14px' }}>
+          <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>New Rate</div>
+          <div style={{ fontFamily:'Bebas Neue',fontSize:'28px',color:newRate>baseRate?'#4ade80':'var(--or)',lineHeight:1 }}>{newRate.toFixed(2)}kg/wk</div>
+        </div>
+        <div style={{ background:'var(--s2)',padding:'14px' }}>
+          <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Days Saved</div>
+          <div style={{ fontFamily:'Bebas Neue',fontSize:'28px',color:daysSaved&&daysSaved>0?'#4ade80':'var(--mu)',lineHeight:1 }}>{daysSaved&&daysSaved>0?`-${daysSaved}d`:'—'}</div>
+        </div>
+      </div>
+
+      {(calAdj > 0 || stepsAdj > 0) && (
+        <div style={{ marginTop:'12px',padding:'10px 12px',background:'rgba(74,222,128,.05)',border:'1px solid rgba(74,222,128,.2)',fontSize:'9px',color:'var(--mu)',lineHeight:1.8 }}>
+          {calAdj>0&&stepsAdj>0 && `Dropping ${calAdj} kcal and adding ${stepsAdj.toLocaleString()} steps would increase your loss by ~${(extraLossFromCals+extraLossFromSteps).toFixed(2)}kg/week.`}
+          {calAdj>0&&stepsAdj===0 && `Dropping ${calAdj} kcal would increase your loss by ~${extraLossFromCals.toFixed(2)}kg/week.`}
+          {calAdj===0&&stepsAdj>0 && `Adding ${stepsAdj.toLocaleString()} steps would increase your loss by ~${extraLossFromSteps.toFixed(2)}kg/week.`}
+          {daysSaved&&daysSaved>0&&` That's ${daysSaved} days sooner to goal.`}
+        </div>
+      )}
+    </Panel>
   )
 }
 
@@ -355,6 +448,125 @@ function JourneyView({ logs, plan, chartOpts }: DashProps) {
         )}
 
       </div>
+
+      {/* Weekly Rate of Loss — unlocks day 28 */}
+      {unlocked.has('rate') ? (
+        <Panel style={{ marginBottom:'20px' }}>
+          <PanelTitle>Weekly Rate of Loss</PanelTitle>
+          <PanelSub>Averaged across your full phase</PanelSub>
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'1px',background:'var(--b1)',marginTop:'8px' }}>
+            <div style={{ background:'var(--s2)',padding:'16px' }}>
+              <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Avg Weekly Loss</div>
+              <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--or)',lineHeight:1 }}>{c.ratePerDay>0?(c.ratePerDay*7).toFixed(2):'—'}kg</div>
+              <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>per week</div>
+            </div>
+            <div style={{ background:'var(--s2)',padding:'16px' }}>
+              <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Daily Deficit</div>
+              <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'#93c5fd',lineHeight:1 }}>{c.ratePerDay>0?Math.round(c.ratePerDay*7700/7):'—'}</div>
+              <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>kcal/day avg</div>
+            </div>
+            <div style={{ background:'var(--s2)',padding:'16px' }}>
+              <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Est. Goal Date</div>
+              <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'#4ade80',lineHeight:1 }}>{c.ratePerDay>0&&c.latestW&&c.goalW?(()=>{const d=new Date();d.setDate(d.getDate()+c.daysToGoal);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})})():'—'}</div>
+              <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>at current rate</div>
+            </div>
+          </div>
+          <div style={{ marginTop:'12px',padding:'10px 12px',background:'var(--s2)',border:'1px solid var(--b1)',fontSize:'9px',color:'var(--mu)',lineHeight:1.8 }}>
+            {c.ratePerDay>0?(
+              c.ratePerDay*7>=0.5&&c.ratePerDay*7<=1.0
+                ? `✓ ${(c.ratePerDay*7).toFixed(2)}kg/week is within the ideal 0.5–1.0kg range`
+                : c.ratePerDay*7<0.5
+                  ? `↓ ${(c.ratePerDay*7).toFixed(2)}kg/week — below ideal range. Consider tightening calories or adding steps.`
+                  : `⚠ ${(c.ratePerDay*7).toFixed(2)}kg/week — faster than ideal. Risk of muscle loss.`
+            ):'Log more data to calculate rate'}
+          </div>
+        </Panel>
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>Weekly Rate of Loss</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 28 · {Math.max(0,28-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/28)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* True Maintenance — unlocks day 35 */}
+      {unlocked.has('truemaint') ? (
+        <Panel style={{ marginBottom:'20px' }}>
+          <PanelTitle>True Maintenance</PanelTitle>
+          <PanelSub>Your actual TDEE based on real data</PanelSub>
+          {(() => {
+            const avgIntake = c.avgCal ?? 0
+            const weeklyLossKg = c.ratePerDay * 7
+            const deficitPerDay = Math.round(weeklyLossKg * 7700 / 7)
+            const trueMaint = avgIntake > 0 ? Math.round(avgIntake + deficitPerDay) : null
+            const plannedMaint = plan?.maintenance_cals ?? null
+            const diff = trueMaint && plannedMaint ? trueMaint - plannedMaint : null
+            return (
+              <div>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'1px',background:'var(--b1)',marginTop:'8px' }}>
+                  <div style={{ background:'var(--s2)',padding:'16px' }}>
+                    <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>Avg Intake</div>
+                    <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--tx)',lineHeight:1 }}>{avgIntake?Math.round(avgIntake).toLocaleString():'—'}</div>
+                    <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>kcal/day</div>
+                  </div>
+                  <div style={{ background:'var(--s2)',padding:'16px' }}>
+                    <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>+ Deficit</div>
+                    <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'#93c5fd',lineHeight:1 }}>+{deficitPerDay||'—'}</div>
+                    <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>kcal/day ({(weeklyLossKg).toFixed(2)}kg/wk)</div>
+                  </div>
+                  <div style={{ background:'var(--s2)',padding:'16px' }}>
+                    <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'4px' }}>True Maintenance</div>
+                    <div style={{ fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--or)',lineHeight:1 }}>{trueMaint?trueMaint.toLocaleString():'—'}</div>
+                    <div style={{ fontSize:'8px',color:'var(--mu)',marginTop:'3px' }}>kcal/day</div>
+                  </div>
+                </div>
+                {diff!==null && (
+                  <div style={{ marginTop:'12px',padding:'10px 12px',background:'var(--s2)',border:'1px solid var(--b1)',fontSize:'9px',color:'var(--mu)',lineHeight:1.8 }}>
+                    {Math.abs(diff)<100
+                      ? `✓ Your planned maintenance (${plannedMaint?.toLocaleString()} kcal) is accurate.`
+                      : diff>0
+                        ? `↑ Your true TDEE is ~${diff} kcal higher than planned. You may be burning more than expected.`
+                        : `↓ Your true TDEE is ~${Math.abs(diff)} kcal lower than planned. Your metabolism may be more conservative.`
+                    }
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </Panel>
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>True Maintenance</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 35 · {Math.max(0,35-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/35)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* Deficit Optimizer — unlocks day 42 */}
+      {unlocked.has('deficit') ? (
+        <DeficitOptimizer c={c} plan={plan} />
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>Deficit Optimizer</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 42 · {Math.max(0,42-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/42)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
 
       {/* Daily prompt */}
       {showPrompt && (
