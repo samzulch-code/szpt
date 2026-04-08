@@ -205,7 +205,7 @@ function DefaultView({ logs, plan, chartOpts }: DashProps) {
           </div>
           <div style={{ display:'flex',justifyContent:'space-between',marginTop:'4px' }}>
             <span style={{ fontSize:'7px',color:'var(--mu2)' }}>0</span>
-            <span style={{ fontSize:'7px',color:'var(--or)' }}>{cprTarget} target</span>
+            <span style={{ fontSize:'7px',color:'var(--or)' }}>{c.cprTarget} target</span>
             <span style={{ fontSize:'7px',color:'var(--mu2)' }}>20</span>
           </div>
           <div style={{ marginTop:'10px',fontSize:'9px',color:c.cprGood?'#4ade80':'#fca5a5',lineHeight:1.6 }}>
