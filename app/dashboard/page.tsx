@@ -18,14 +18,14 @@ interface DashProps {
 
 // ── Journey unlock config ──────────────────────────────
 const UNLOCKS = [
-  { id: 'cal',      label: 'Avg Calories',        day: 1  },
-  { id: 'prot',     label: 'Avg Protein',          day: 3  },
-  { id: 'cpr',      label: 'Cal:Protein Ratio',    day: 7  },
-  { id: 'creatine', label: 'Creatine Streak',      day: 11 },
-  { id: 'trend',    label: 'Weight Trend',         day: 14 },
-  { id: 'rate',     label: 'Weekly Rate of Loss',  day: 28 },
-  { id: 'truemaint',label: 'True Maintenance',     day: 35 },
-  { id: 'deficit',  label: 'Deficit Optimizer',    day: 42 },
+  { id: 'cal',      label: 'Avg Calories',               day: 1,  desc: 'See your 7-day average calorie intake' },
+  { id: 'prot',     label: 'Avg Protein',                day: 3,  desc: '7-day average protein intake' },
+  { id: 'cpr',      label: 'Cal:Protein Ratio',          day: 7,  desc: 'Calorie to protein efficiency score' },
+  { id: 'creatine', label: 'Creatine Streak',            day: 11, desc: 'Daily supplement consistency tracker' },
+  { id: 'trend',    label: 'Weight Trend + Rate',        day: 14, desc: 'Weight chart and projected goal date' },
+  { id: 'rate',     label: 'Weekly Rate of Loss',        day: 28, desc: 'Detailed rate analysis and true deficit' },
+  { id: 'truemaint',label: 'True Maintenance',           day: 35, desc: 'Your actual TDEE based on real data' },
+  { id: 'deficit',  label: 'Deficit Optimizer',          day: 42, desc: 'Interactive sliders to model your deficit' },
 ]
 
 function calcJourneyStreak(logs: DailyLog[]): number {
@@ -383,6 +383,50 @@ function JourneyView({ logs, plan, chartOpts }: DashProps) {
           {UNLOCKS.map(u=>(
             <div key={u.id} style={{ width:'8px',height:'8px',borderRadius:'50%',background:unlocked.has(u.id)?'var(--or)':'var(--s4)',border:`1px solid ${unlocked.has(u.id)?'var(--or)':'var(--mu2)'}` }} title={u.label} />
           ))}
+        </div>
+      </div>
+
+      {/* Milestone progression map */}
+      <div style={{ background:'var(--s1)',border:'1px solid var(--b1)',padding:'20px 24px',marginBottom:'20px' }}>
+        <div style={{ fontSize:'8px',letterSpacing:'3px',textTransform:'uppercase',color:'var(--mu)',marginBottom:'16px' }}>Journey Milestones</div>
+        <div style={{ position:'relative' }}>
+          {/* Track line */}
+          <div style={{ position:'absolute',top:'16px',left:'16px',right:'16px',height:'2px',background:'var(--s3)',zIndex:0 }}>
+            <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/42)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+          </div>
+          {/* Nodes */}
+          <div style={{ display:'flex',justifyContent:'space-between',position:'relative',zIndex:1 }}>
+            {UNLOCKS.map((u) => {
+              const isUnlocked = unlocked.has(u.id)
+              const isCurrent = !isUnlocked && UNLOCKS.find(x => !unlocked.has(x.id))?.id === u.id
+              return (
+                <div key={u.id} style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:'8px',flex:1 }}>
+                  <div style={{
+                    width:'32px',height:'32px',borderRadius:'50%',
+                    background: isUnlocked ? 'var(--or)' : isCurrent ? 'var(--s3)' : 'var(--s2)',
+                    border: isUnlocked ? '2px solid var(--or)' : isCurrent ? '2px solid var(--or)' : '2px solid var(--b2)',
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    fontSize:'12px',
+                    boxShadow: isUnlocked ? '0 0 10px rgba(249,115,22,.4)' : isCurrent ? '0 0 8px rgba(249,115,22,.2)' : 'none',
+                    transition:'all .3s',
+                  }}>
+                    {isUnlocked ? '✓' : isCurrent ? '◉' : '○'}
+                  </div>
+                  <div style={{ textAlign:'center' }}>
+                    <div style={{ fontSize:'7px',letterSpacing:'1px',textTransform:'uppercase',color: isUnlocked?'var(--or)':isCurrent?'var(--tx)':'var(--mu2)',lineHeight:1.3,maxWidth:'60px' }}>{u.label}</div>
+                    <div style={{ fontSize:'6px',color:'var(--mu2)',marginTop:'2px' }}>Day {u.day}</div>
+                    {!isUnlocked && <div style={{ fontSize:'6px',color:isCurrent?'#fcd34d':'var(--mu2)',marginTop:'1px' }}>{u.day-journeyStreak}d left</div>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div style={{ marginTop:'16px',display:'flex',alignItems:'center',gap:'8px' }}>
+          <div style={{ flex:1,height:'4px',background:'var(--s3)' }}>
+            <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/42)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+          </div>
+          <div style={{ fontSize:'9px',color:'var(--mu)',whiteSpace:'nowrap' }}>Day {journeyStreak} of 42</div>
         </div>
       </div>
 
