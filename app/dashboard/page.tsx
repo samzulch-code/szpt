@@ -26,6 +26,9 @@ const UNLOCKS = [
   { id: 'rate',     label: 'Weekly Rate of Loss',        day: 28, desc: 'Detailed rate analysis and true deficit' },
   { id: 'truemaint',label: 'True Maintenance',           day: 35, desc: 'Your actual TDEE based on real data' },
   { id: 'deficit',  label: 'Deficit Optimizer',          day: 42, desc: 'Interactive sliders to model your deficit' },
+  { id: 'fatigue',  label: 'Diet Fatigue',               day: 70, desc: 'Compare first vs second 5 weeks of your cut' },
+  { id: 'reverse',  label: 'Reverse Diet Planner',       day: 77, desc: 'Step-by-step calorie increase schedule' },
+  { id: 'report',   label: 'Full Phase Report',          day: 84, desc: 'Complete summary of your entire cut phase' },
 ]
 
 function calcJourneyStreak(logs: DailyLog[]): number {
@@ -607,6 +610,196 @@ function JourneyView({ logs, plan, chartOpts }: DashProps) {
             <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 42 · {Math.max(0,42-journeyStreak)} days to go</div>
             <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
               <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/42)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* Diet Fatigue — unlocks day 70 */}
+      {unlocked.has('fatigue') ? (
+        <Panel style={{ marginBottom:'20px' }}>
+          <PanelTitle>Diet Fatigue</PanelTitle>
+          <PanelSub>First 5 weeks vs second 5 weeks — metabolic adaptation over time</PanelSub>
+          {(() => {
+            if (!plan?.start_date) return <div style={{ fontSize:'10px',color:'var(--mu)',padding:'12px 0' }}>Set a phase start date to calculate.</div>
+            const logMap2 = Object.fromEntries(logs.map((l:any) => [l.date, l]))
+            const start = new Date(plan.start_date + 'T12:00:00')
+            const block = (fromDay: number, toDay: number) => {
+              const days = Array.from({ length: toDay-fromDay }, (_, i) => { const d = new Date(start); d.setDate(start.getDate()+fromDay+i); return d.toISOString().split('T')[0] })
+              const logged = days.filter(d => logMap2[d]?.calories != null)
+              const cals = logged.length ? logged.reduce((a:number,d:string)=>a+logMap2[d].calories!,0)/logged.length : null
+              const wts = days.filter(d => logMap2[d]?.weight != null).map(d => logMap2[d].weight!)
+              const weeklyRate = wts.length >= 2 ? (wts[0]-wts[wts.length-1])/((toDay-fromDay)/7) : null
+              return { cals, weeklyRate, days: logged.length }
+            }
+            const f5 = block(0,35), s5 = block(35,70)
+            const diff = f5.weeklyRate != null && s5.weeklyRate != null ? s5.weeklyRate - f5.weeklyRate : null
+            return (
+              <div>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginTop:'12px' }}>
+                  {[{label:'First 5 Weeks',data:f5,color:'#93c5fd'},{label:'Second 5 Weeks',data:s5,color:'var(--or)'}].map(({label,data,color})=>(
+                    <div key={label} style={{ background:'var(--s2)',border:'1px solid var(--b1)',padding:'16px' }}>
+                      <div style={{ fontSize:'8px',letterSpacing:'3px',textTransform:'uppercase',color,marginBottom:'12px' }}>{label}</div>
+                      <div style={{ marginBottom:'10px' }}>
+                        <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'3px' }}>Avg Daily Calories</div>
+                        <div style={{ fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--tx)',lineHeight:1 }}>{data.cals?Math.round(data.cals).toLocaleString():'—'} kcal</div>
+                      </div>
+                      <div style={{ marginBottom:'10px' }}>
+                        <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'3px' }}>Avg Weekly Loss</div>
+                        <div style={{ fontFamily:'Bebas Neue',fontSize:'28px',color:'#4ade80',lineHeight:1 }}>{data.weeklyRate?data.weeklyRate.toFixed(2):'—'} kg/wk</div>
+                      </div>
+                      <div style={{ fontSize:'8px',color:'var(--mu)' }}>{data.days} days logged</div>
+                    </div>
+                  ))}
+                </div>
+                {diff != null && (
+                  <div style={{ marginTop:'12px',padding:'12px 14px',background:'var(--s2)',border:'1px solid var(--b1)',fontSize:'9px',color:'var(--mu)',lineHeight:1.8 }}>
+                    {diff < -0.1 ? `⚠ Rate dropped by ${Math.abs(diff).toFixed(2)}kg/week in the second 5 weeks. Classic metabolic adaptation — a diet break or refeed may help.`
+                    : diff > 0.05 ? `✓ Rate improved in the second 5 weeks (+${diff.toFixed(2)}kg/wk). Strategy is working well.`
+                    : `Your rate has been consistent across both periods — minimal metabolic adaptation detected.`}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </Panel>
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>Diet Fatigue</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 70 · {Math.max(0,70-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/70)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* Reverse Diet Planner — unlocks day 77 */}
+      {unlocked.has('reverse') ? (
+        <Panel style={{ marginBottom:'20px' }}>
+          <PanelTitle>Reverse Diet Planner</PanelTitle>
+          <PanelSub>Gradually increase calories back to maintenance + 250 kcal</PanelSub>
+          {(() => {
+            const logMap2 = Object.fromEntries(logs.map((l:any) => [l.date, l]))
+            const last14 = Array.from({length:14},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-13+i); return d.toISOString().split('T')[0] })
+            const recentCals = (() => { const vals = last14.filter(d=>logMap2[d]?.calories!=null).map(d=>logMap2[d].calories!); return vals.length ? vals.reduce((a:number,b:number)=>a+b,0)/vals.length : null })()
+            const allW2 = logs.filter((l:any)=>l.weight!=null&&l.weight>0).sort((a:any,b:any)=>a.date.localeCompare(b.date))
+            const trueMaint = (() => {
+              if (allW2.length < 2 || !recentCals) return plan?.maintenance_cals ?? null
+              const span = Math.max(1,(new Date(allW2[allW2.length-1].date+'T12:00:00').getTime()-new Date(allW2[0].date+'T12:00:00').getTime())/86400000)
+              const rate = (allW2[0].weight - allW2[allW2.length-1].weight) / span
+              return Math.round(recentCals + rate * 7700)
+            })()
+            const target = trueMaint ? trueMaint + 250 : null
+            const base = Math.round(recentCals ?? plan?.cal_target ?? 1500)
+            const weeks: {week:number;label:string;cals:number;type:string}[] = []
+            let cur = base, wk = 1
+            while (target && cur < target && wk <= 20) {
+              weeks.push({week:wk,label:wk%2===1?'Weekdays':'Weekends',cals:cur,type:wk%2===1?'weekday':'weekend'})
+              cur += 150; wk++
+            }
+            if (target) weeks.push({week:wk,label:'Maintenance',cals:target,type:'target'})
+            if (!recentCals) return <div style={{ fontSize:'10px',color:'var(--mu)',padding:'12px 0' }}>Log at least 14 days of calories to generate your plan.</div>
+            return (
+              <div>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'1px',background:'var(--b1)',marginBottom:'16px' }}>
+                  {[{label:'Current Avg',val:`${Math.round(base).toLocaleString()} kcal`,color:'var(--tx)'},{label:'True Maintenance',val:trueMaint?`${trueMaint.toLocaleString()} kcal`:'—',color:'var(--or)'},{label:'Target (+250)',val:target?`${target.toLocaleString()} kcal`:'—',color:'#4ade80'}].map(({label,val,color})=>(
+                    <div key={label} style={{ background:'var(--s2)',padding:'12px' }}>
+                      <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'3px' }}>{label}</div>
+                      <div style={{ fontFamily:'Bebas Neue',fontSize:'22px',color,lineHeight:1 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display:'flex',flexDirection:'column',gap:'1px' }}>
+                  {weeks.map(w=>(
+                    <div key={w.week} style={{ display:'flex',alignItems:'center',gap:'12px',padding:'9px 12px',background:w.type==='target'?'rgba(74,222,128,.08)':'var(--s2)',border:`1px solid ${w.type==='target'?'rgba(74,222,128,.3)':'var(--b1)'}` }}>
+                      <div style={{ width:'56px',fontSize:'8px',letterSpacing:'1px',textTransform:'uppercase',color:w.type==='target'?'#4ade80':'var(--mu2)' }}>{w.type==='target'?'Goal':`Wk ${w.week}`}</div>
+                      <div style={{ width:'72px',fontSize:'8px',color:'var(--mu)' }}>{w.label}</div>
+                      <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',color:w.type==='target'?'#4ade80':'var(--tx)' }}>{w.cals.toLocaleString()} kcal</div>
+                      {w.type!=='target'&&target&&<div style={{ marginLeft:'auto',height:'3px',flex:1,maxWidth:'160px',background:'var(--s3)' }}><div style={{ height:'100%',width:`${Math.min(100,(w.cals/target)*100)}%`,background:'var(--or)' }} /></div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+        </Panel>
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>Reverse Diet Planner</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 77 · {Math.max(0,77-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/77)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* Full Phase Report — unlocks day 84 */}
+      {unlocked.has('report') ? (
+        <Panel style={{ marginBottom:'20px' }}>
+          <PanelTitle>Full Phase Report</PanelTitle>
+          <PanelSub>Complete summary of your cut phase</PanelSub>
+          {(() => {
+            if (!plan?.start_date) return <div style={{ fontSize:'10px',color:'var(--mu)',padding:'12px 0' }}>Set a phase start date to generate.</div>
+            const logMap2 = Object.fromEntries(logs.map((l:any) => [l.date, l]))
+            const start = new Date(plan.start_date + 'T12:00:00')
+            const today2 = new Date()
+            const daysIn = Math.floor((today2.getTime()-start.getTime())/86400000)
+            const allLoggedDays = Array.from({length:daysIn},(_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d.toISOString().split('T')[0] }).filter(d=>logMap2[d]?.calories!=null)
+            const allW3 = logs.filter((l:any)=>l.weight!=null&&l.weight>0).sort((a:any,b:any)=>a.date.localeCompare(b.date))
+            const latestW3 = allW3.length ? allW3[allW3.length-1].weight : null
+            const startW3 = plan.start_weight ?? allW3[0]?.weight ?? null
+            const totalLost = startW3 && latestW3 ? startW3-latestW3 : null
+            const maint2 = plan.maintenance_cals ?? null
+            const oAvgCal = allLoggedDays.length ? allLoggedDays.reduce((a:number,d:string)=>a+logMap2[d].calories!,0)/allLoggedDays.length : null
+            const protDays = allLoggedDays.filter(d=>logMap2[d]?.protein!=null)
+            const oAvgProt = protDays.length ? protDays.reduce((a:number,d:string)=>a+logMap2[d].protein!,0)/protDays.length : null
+            const stepDays = allLoggedDays.filter(d=>logMap2[d]?.steps!=null)
+            const oAvgSteps = stepDays.length ? stepDays.reduce((a:number,d:string)=>a+logMap2[d].steps!,0)/stepDays.length : null
+            const totalDefFat = maint2 ? allLoggedDays.reduce((a:number,d:string)=>a+Math.max(0,(maint2-logMap2[d].calories!)/7700*1000),0) : 0
+            let wkRate3: number|null = null
+            if (allW3.length>=2) { const span=Math.max(1,(new Date(allW3[allW3.length-1].date+'T12:00:00').getTime()-new Date(allW3[0].date+'T12:00:00').getTime())/86400000); wkRate3=(allW3[0].weight-latestW3)/span*7 }
+            const weeksIn2 = Math.floor(daysIn/7)
+            return (
+              <div>
+                <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'1px',background:'var(--b1)',marginBottom:'12px' }}>
+                  {[{label:'Avg Calories',val:oAvgCal?`${Math.round(oAvgCal).toLocaleString()} kcal`:'—',color:'var(--or)'},{label:'Avg Protein',val:oAvgProt?`${Math.round(oAvgProt)}g`:'—',color:'var(--tx)'},{label:'Avg Steps',val:oAvgSteps?`${(oAvgSteps/1000).toFixed(1)}k`:'—',color:'var(--tx)'},{label:'Weeks In',val:`${weeksIn2} wks`,color:'var(--tx)'}].map(({label,val,color})=>(
+                    <div key={label} style={{ background:'var(--s2)',padding:'12px' }}>
+                      <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'3px' }}>{label}</div>
+                      <div style={{ fontFamily:'Bebas Neue',fontSize:'22px',color,lineHeight:1 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1px',background:'var(--b1)',marginBottom:'12px' }}>
+                  {[{label:'Total Weight Lost',val:totalLost?`${totalLost.toFixed(2)}kg`:'—',color:'#4ade80'},{label:'Avg Weekly Loss',val:wkRate3?`${wkRate3.toFixed(2)}kg/wk`:'—',color:'#4ade80'},{label:'Expected Fat Lost',val:totalDefFat?`${Math.round(totalDefFat).toLocaleString()}g`:'—',color:'#93c5fd'}].map(({label,val,color})=>(
+                    <div key={label} style={{ background:'var(--s2)',padding:'12px' }}>
+                      <div style={{ fontSize:'7px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)',marginBottom:'3px' }}>{label}</div>
+                      <div style={{ fontFamily:'Bebas Neue',fontSize:'22px',color,lineHeight:1 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                {totalLost && oAvgCal && maint2 && (
+                  <div style={{ padding:'12px 14px',background:'var(--s2)',border:'1px solid var(--b1)',fontSize:'9px',color:'var(--mu)',lineHeight:1.8 }}>
+                    {`In ${weeksIn2} weeks you've lost ${totalLost.toFixed(2)}kg at an average of ${wkRate3?.toFixed(2) ?? '—'}kg/week, eating ~${Math.round(oAvgCal).toLocaleString()} kcal/day. Your deficit has burned an estimated ${Math.round(totalDefFat).toLocaleString()}g of fat based on your logged intake vs maintenance.`}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </Panel>
+      ) : (
+        <Panel style={{ marginBottom:'20px' }}>
+          <div style={{ textAlign:'center',padding:'32px 20px' }}>
+            <div style={{ fontSize:'32px',marginBottom:'10px' }}>🔒</div>
+            <div style={{ fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'2px',color:'var(--mu)',marginBottom:'4px' }}>Full Phase Report</div>
+            <div style={{ fontSize:'9px',letterSpacing:'2px',textTransform:'uppercase',color:'var(--mu2)' }}>Unlocks at day 84 · {Math.max(0,84-journeyStreak)} days to go</div>
+            <div style={{ height:'4px',background:'var(--s3)',maxWidth:'260px',margin:'14px auto 0' }}>
+              <div style={{ height:'100%',width:`${Math.min(100,(journeyStreak/84)*100)}%`,background:'var(--or)',transition:'width .6s' }} />
             </div>
           </div>
         </Panel>

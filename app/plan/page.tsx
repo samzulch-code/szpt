@@ -31,10 +31,10 @@ export default function PlanPage() {
     const payload = { ...plan, user_id: userId, is_active: true }
     if (plan.id) {
       const { error } = await supabase.from('plans').update(payload).eq('id', plan.id)
-      if (error) showToast('Error: ' + error.message); else showToast('Plan saved ✓')
+      if (error) showToast('Error: ' + error.message); else showToast('Phase saved ✓')
     } else {
       const { data, error } = await supabase.from('plans').insert(payload).select().single()
-      if (error) showToast('Error: ' + error.message); else { setPlan(data); showToast('Plan saved ✓') }
+      if (error) showToast('Error: ' + error.message); else { setPlan(data); showToast('Phase saved ✓') }
     }
     setSaving(false)
   }
@@ -88,7 +88,7 @@ export default function PlanPage() {
 
   return (
     <AppLayout>
-      <PageHeader title="CURRENT" accent="PLAN" sub="Phase progress and results"
+      <PageHeader title="CURRENT" accent="PHASE" sub="Phase progress and results"
         right={<div style={{ fontSize:'8px',letterSpacing:'3px',textTransform:'uppercase',padding:'4px 14px',border:`1px solid ${bc}`,color:bc,background:`${bc}20` }}>{PHASE_LABELS[plan.phase||'cut']}</div>} />
 
       <StatGrid cols={4}>
@@ -160,11 +160,11 @@ export default function PlanPage() {
       </Grid2>
 
       <Panel style={{ marginBottom: '20px' }}>
-        <PanelTitle>Plan Setup</PanelTitle>
+        <PanelTitle>Phase Setup</PanelTitle>
         <PanelSub>Configure your phase — drives all calculations</PanelSub>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
           <Select label="Phase" value={plan.phase || 'cut'} onChange={v => setPlan(p => ({ ...p, phase: v as any }))} options={[{value:'cut',label:'Cut (Deficit)'},{value:'gain',label:'Gain (Surplus)'},{value:'reverse',label:'Reverse Diet'},{value:'maintain',label:'Maintenance'}]} />
-          <Input label="Plan Name" value={plan.name || ''} onChange={v => setPlan(p => ({ ...p, name: v }))} placeholder="e.g. PPB 16-Week Cut" />
+          <Input label="Phase Name" value={plan.name || ''} onChange={v => setPlan(p => ({ ...p, name: v }))} placeholder="e.g. PPB 16-Week Cut" />
           <Input label="Start Date" value={plan.start_date || ''} onChange={v => setPlan(p => ({ ...p, start_date: v }))} type="date" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -178,15 +178,15 @@ export default function PlanPage() {
           <Input label="Maintenance Calories" value={plan.maintenance_cals?.toString() || ''} onChange={v => setPlan(p => ({ ...p, maintenance_cals: parseInt(v)||null }))} type="number" placeholder="2400" />
           <Input label="Cal:Protein Target (ratio)" value={plan.cpr_target?.toString() || ''} onChange={v => setPlan(p => ({ ...p, cpr_target: parseFloat(v)||null }))} type="number" placeholder="10" />
         </div>
-        <Textarea label="Plan Notes" value={plan.notes || ''} onChange={v => setPlan(p => ({ ...p, notes: v }))} placeholder="Training split, coach notes..." />
-        <div style={{ marginTop: '16px' }}><Btn variant="primary" onClick={savePlan} disabled={saving}>{saving ? 'Saving...' : 'Save Plan'}</Btn></div>
+        <Textarea label="Phase Notes" value={plan.notes || ''} onChange={v => setPlan(p => ({ ...p, notes: v }))} placeholder="Training split, coach notes..." />
+        <div style={{ marginTop: '16px' }}><Btn variant="primary" onClick={savePlan} disabled={saving}>{saving ? 'Saving...' : 'Save Phase'}</Btn></div>
       </Panel>
 
       <Panel>
         <PanelTitle>Weekly Breakdown</PanelTitle>
-        <PanelSub>Week-by-week results since plan start</PanelSub>
+        <PanelSub>Week-by-week results since phase start</PanelSub>
         {!weeklySummaries.length ? (
-          <div style={{ fontSize: '10px', color: 'var(--mu)', letterSpacing: '2px', padding: '14px 0', textTransform: 'uppercase' }}>Set a plan start date and log data to see breakdown</div>
+          <div style={{ fontSize: '10px', color: 'var(--mu)', letterSpacing: '2px', padding: '14px 0', textTransform: 'uppercase' }}>Set a phase start date and log data to see breakdown</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>

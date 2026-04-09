@@ -9,7 +9,7 @@ const NAV = [
     { href: '/dashboard', label: 'Dashboard', icon: '◈' },
   ]},
   { section: 'Plan', items: [
-    { href: '/plan', label: 'Current Plan', icon: '◎' },
+    { href: '/plan', label: 'Current Phase', icon: '◎' },
     { href: '/profile', label: 'My Profile', icon: '◐' },
   ]},
   { section: 'Data', items: [
