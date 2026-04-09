@@ -689,7 +689,7 @@ function JourneyView({ logs, plan, chartOpts }: DashProps) {
             const trueMaint = (() => {
               if (allW2.length < 2 || !recentCals) return plan?.maintenance_cals ?? null
               const span = Math.max(1,(new Date(allW2[allW2.length-1].date+'T12:00:00').getTime()-new Date(allW2[0].date+'T12:00:00').getTime())/86400000)
-              const rate = (allW2[0].weight - allW2[allW2.length-1].weight) / span
+              const rate = ((allW2[0].weight ?? 0) - (allW2[allW2.length-1].weight ?? 0)) / span
               return Math.round(recentCals + rate * 7700)
             })()
             const target = trueMaint ? trueMaint + 250 : null
