@@ -90,6 +90,7 @@ export function buildWeekSummaries(
     const wts = days.filter(d => logMap[d]?.weight != null).map(d => logMap[d].weight!)
     const creatineDays = valid.filter(d => logMap[d].creatine === true).length
 
+    const avgWt = wts.length ? parseFloat((wts.reduce((a,b)=>a+b,0)/wts.length).toFixed(2)) : null
     summaries.push({
       weekNum: w + 1,
       startDate: days[0],
@@ -98,6 +99,7 @@ export function buildWeekSummaries(
       avgSteps: avg(steps),
       startWeight: wts[0] ?? null,
       endWeight: wts[wts.length - 1] ?? null,
+      avgWeight: avgWt,
       change: wts.length > 1 ? wts[wts.length - 1] - wts[0] : null,
       creatineDays,
       loggedDays: valid.length,

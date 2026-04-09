@@ -70,6 +70,7 @@ export interface WeekSummary {
   avgSteps: number | null
   startWeight: number | null
   endWeight: number | null
+  avgWeight: number | null
   change: number | null
   creatineDays: number
   loggedDays: number
