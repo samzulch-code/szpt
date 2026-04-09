@@ -763,7 +763,7 @@ function JourneyView({ logs, plan, chartOpts }: DashProps) {
             const oAvgSteps = stepDays.length ? stepDays.reduce((a:number,d:string)=>a+logMap2[d].steps!,0)/stepDays.length : null
             const totalDefFat = maint2 ? allLoggedDays.reduce((a:number,d:string)=>a+Math.max(0,(maint2-logMap2[d].calories!)/7700*1000),0) : 0
             let wkRate3: number|null = null
-            if (allW3.length>=2) { const span=Math.max(1,(new Date(allW3[allW3.length-1].date+'T12:00:00').getTime()-new Date(allW3[0].date+'T12:00:00').getTime())/86400000); wkRate3=(allW3[0].weight-latestW3)/span*7 }
+            if (allW3.length>=2) { const span=Math.max(1,(new Date(allW3[allW3.length-1].date+'T12:00:00').getTime()-new Date(allW3[0].date+'T12:00:00').getTime())/86400000); wkRate3=((allW3[0].weight??0)-(latestW3??0))/span*7 }
             const weeksIn2 = Math.floor(daysIn/7)
             return (
               <div>
